@@ -94,6 +94,16 @@ curl -sS --get "${INBOX_URL}/api/v1/mailboxes/${MAILBOX}/emails" \
 }
 ```
 
+列表中的 `snippet` 已由 Worker 转换为纯文本：会移除 HTML 标签、解码常见 HTML
+实体并合并多余空格，因此不会出现 `<div>`、`<br>` 等标记。示例：
+
+```json
+{
+  "subject": "Re: 222",
+  "snippet": "1111 Qun Wang 于2026年9月10日周四 21:11写道："
+}
+```
+
 ## 获取单封邮件
 
 先从上一步响应中取得邮件 `id`，再请求：
@@ -105,6 +115,9 @@ curl -sS "${INBOX_URL}/api/v1/mailboxes/${MAILBOX}/emails/${EMAIL_ID}" \
   -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}" \
   -H 'Accept: application/json' | jq
 ```
+
+详情接口会返回完整正文。为保留邮件排版，正文可能仍包含 HTML；网页展示时应进行
+HTML 消毒后再渲染，不要把不可信正文直接拼接到页面中。
 
 ## 收信链路
 
