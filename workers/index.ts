@@ -81,7 +81,12 @@ app.use("/api/*", cors({
 		return undefined;
 	},
 }));
-app.use("/api/v1/mailboxes/:mailboxId/*", requireMailbox);
+// Keep the collection-level `random` endpoint out of the mailbox middleware:
+// Hono's parameter matcher also treats `/mailboxes/random` as a mailbox ID.
+app.use("/api/v1/mailboxes/:mailboxId/*", async (c, next) => {
+	if (c.req.param("mailboxId") === "random") return next();
+	return requireMailbox(c, next);
+});
 
 // -- Config ---------------------------------------------------------
 
