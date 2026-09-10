@@ -63,6 +63,23 @@ function boolQuery(c: AppContext, key: string): boolean | undefined {
 	return v === "true" || v === "1";
 }
 
+/** Return a compact, plain-text preview for API consumers. */
+function plainTextSnippet(value: unknown): string {
+	if (typeof value !== "string") return "";
+	return value
+		.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+		.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+		.replace(/<[^>]*>/g, " ")
+		.replace(/&nbsp;/gi, " ")
+		.replace(/&amp;/gi, "&")
+		.replace(/&lt;/gi, "<")
+		.replace(/&gt;/gi, ">")
+		.replace(/&quot;/gi, '"')
+		.replace(/&#39;|&apos;/gi, "'")
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
 // -- App & middleware -----------------------------------------------
 
 const app = new Hono<MailboxContext>();
@@ -193,14 +210,14 @@ app.get("/api/v1/mailboxes/:mailboxId/emails", async (c: AppContext) => {
 	if (threaded && folder) {
 		const emails = await (stub as any).getThreadedEmails({ folder, page, limit });
 		const totalCount = await (stub as any).countThreadedEmails(folder);
-		return c.json({ emails, totalCount });
+		return c.json({ emails: emails.map((email: any) => ({ ...email, snippet: plainTextSnippet(email.snippet) })), totalCount });
 	}
 	const emails = await stub.getEmails({ folder, thread_id, page, limit, sortColumn, sortDirection });
 	if (folder) {
 		const totalCount = await stub.countEmails({ folder, thread_id });
-		return c.json({ emails, totalCount });
+		return c.json({ emails: emails.map((email: any) => ({ ...email, snippet: plainTextSnippet(email.snippet) })), totalCount });
 	}
-	return c.json(emails);
+	return c.json(emails.map((email: any) => ({ ...email, snippet: plainTextSnippet(email.snippet) })));
 });
 
 app.post("/api/v1/mailboxes/:mailboxId/emails", async (c: AppContext) => {
