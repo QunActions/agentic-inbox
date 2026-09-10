@@ -4,11 +4,13 @@
 
 ## 前提
 
-应用生产环境启用了 Cloudflare Access。所有 API 请求都必须带有效的 Access JWT：
+应用生产环境启用了 Cloudflare Access。API 请求可以使用 Access JWT，或使用后台配置的固定 API Token：
 
 ```bash
 export INBOX_URL='https://cloudmail.qun.run'
 export CF_ACCESS_JWT='从 Cloudflare Access 登录会话取得的 JWT'
+# 后台 API Token（如果已配置）
+export API_TOKEN='后台提供的固定 token'
 ```
 
 请求头写法：
@@ -16,6 +18,14 @@ export CF_ACCESS_JWT='从 Cloudflare Access 登录会话取得的 JWT'
 ```bash
 -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}"
 ```
+
+使用固定 Token 时改为：
+
+```bash
+-H "Authorization: Bearer ${API_TOKEN}"
+```
+
+固定 Token 只对 `/api/*` 和 `/mcp` 生效，不能直接打开网页；网页仍需 Cloudflare Access 登录。
 
 如果使用 Cloudflare Access Service Token，也可以按 Access 策略要求改用对应的 `CF-Access-Client-Id` 和 `CF-Access-Client-Secret` 请求头。
 
@@ -106,4 +116,3 @@ curl -sS "${INBOX_URL}/api/v1/mailboxes/${MAILBOX}/emails/${EMAIL_ID}" \
 - `403 Invalid or expired Access token`：JWT 已过期，重新登录并获取新 JWT。
 - `403 Random mailbox creation is disabled...`：部署配置了 `EMAIL_ADDRESSES` 白名单。
 - 邮箱列表为空：检查邮箱地址是否已创建，以及 Email Routing 规则是否指向 `agentic-inbox`。
-

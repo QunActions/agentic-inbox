@@ -49,6 +49,15 @@ app.use("*", async (c, next) => {
 		return next();
 	}
 
+	// Allow non-browser API/MCP clients to authenticate with a dedicated
+	// Worker secret. This never bypasses Access for the HTML application.
+	const pathname = new URL(c.req.url).pathname;
+	const isTokenPath = pathname.startsWith("/api/") || pathname === "/mcp" || pathname.startsWith("/mcp/");
+	const bearer = c.req.header("authorization");
+	if (isTokenPath && c.env.API_TOKEN && bearer === `Bearer ${c.env.API_TOKEN}`) {
+		return next();
+	}
+
 	const { POLICY_AUD, TEAM_DOMAIN } = c.env;
 
 	// Fail closed in production if Access is not configured.
