@@ -1,13 +1,13 @@
 # 使用 cURL 创建随机邮箱并获取邮件
 
-本文适用于部署地址 `https://cloudmail.qun.run`。
+网页地址是 `https://cloudmail.qun.run`。使用固定 API Token 调用接口时，请使用 Worker 原始地址，避免被 Cloudflare Access 的网页登录重定向拦截。
 
 ## 前提
 
 应用生产环境启用了 Cloudflare Access。API 请求可以使用 Access JWT，或使用后台配置的固定 API Token：
 
 ```bash
-export INBOX_URL='https://cloudmail.qun.run'
+export INBOX_URL='https://agentic-inbox.qunwang6.workers.dev'
 export CF_ACCESS_JWT='从 Cloudflare Access 登录会话取得的 JWT'
 # 后台 API Token（如果已配置）
 export API_TOKEN='后台提供的固定 token'
@@ -26,6 +26,8 @@ export API_TOKEN='后台提供的固定 token'
 ```
 
 固定 Token 只对 `/api/*` 和 `/mcp` 生效，不能直接打开网页；网页仍需 Cloudflare Access 登录。
+
+如果把 `INBOX_URL` 改成 `https://cloudmail.qun.run`，请求会先被 Access 拦截并返回 `302` 登录跳转；这种情况下请改用 Access JWT，而不是固定 Token。
 
 如果使用 Cloudflare Access Service Token，也可以按 Access 策略要求改用对应的 `CF-Access-Client-Id` 和 `CF-Access-Client-Secret` 请求头。
 
