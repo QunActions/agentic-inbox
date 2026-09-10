@@ -19,6 +19,7 @@ import { Link as RouterLink } from "react-router";
 import api from "~/services/api";
 import {
 	useCreateMailbox,
+	useCreateRandomMailbox,
 	useDeleteMailbox,
 	useMailboxes,
 } from "~/queries/mailboxes";
@@ -32,6 +33,7 @@ export default function HomeRoute() {
 	const toastManager = useKumoToastManager();
 	const { data: mailboxes = [], refetch: refetchMailboxes, isFetched: mailboxesFetched } = useMailboxes();
 	const createMailbox = useCreateMailbox();
+	const createRandomMailbox = useCreateRandomMailbox();
 	const deleteMailbox = useDeleteMailbox();
 
 	const { data: configData } = useQuery({
@@ -63,14 +65,19 @@ export default function HomeRoute() {
 		}
 	}, [domains, selectedDomain]);
 
-	// Auto-create mailboxes from config (run once when both data sources are ready)
+	// Auto-create configured mailboxes, or one generated inbox on a fresh unpinned deployment.
 	const autoCreateDone = useRef(false);
 	useEffect(() => {
 		if (autoCreateDone.current) return;
-		if (emailAddresses.length === 0 || !mailboxesFetched) return;
+		if (!mailboxesFetched || !configData) return;
 		const existingEmails = new Set(
 			mailboxes.map((m) => m.email.toLowerCase()),
 		);
+		if (emailAddresses.length === 0 && mailboxes.length === 0) {
+			autoCreateDone.current = true;
+			createRandomMailbox.mutate(undefined, { onError: () => { autoCreateDone.current = false; } });
+			return;
+		}
 		const toCreate = emailAddresses.filter(
 			(addr) => !existingEmails.has(addr.toLowerCase()),
 		);
@@ -87,7 +94,7 @@ export default function HomeRoute() {
 			}),
 		).then(() => { if (!cancelled) refetchMailboxes(); });
 		return () => { cancelled = true; };
-	}, [emailAddresses, mailboxes, refetchMailboxes]);
+	}, [configData, createRandomMailbox, emailAddresses, mailboxes, mailboxesFetched, refetchMailboxes]);
 
 	const handleCreate = async (e: FormEvent) => {
 		e.preventDefault();

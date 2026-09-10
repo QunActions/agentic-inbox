@@ -35,6 +35,16 @@ export function useCreateMailbox() {
 	});
 }
 
+export function useCreateRandomMailbox() {
+	const qc = useQueryClient();
+	return useMutation({
+		mutationFn: () => api.createRandomMailbox(),
+		onSuccess: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.mailboxes.all });
+		},
+	});
+}
+
 export function useUpdateMailbox() {
 	const qc = useQueryClient();
 	return useMutation({

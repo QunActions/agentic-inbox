@@ -116,6 +116,39 @@ app.post("/api/v1/mailboxes", async (c) => {
 	return c.json({ id: email, email, name, settings: finalSettings }, 201);
 });
 
+// Create a mailbox with a generated local part. This is used on first visit
+// when the deployment has not been pinned to a fixed EMAIL_ADDRESSES list.
+app.post("/api/v1/mailboxes/random", async (c) => {
+	const domains = (c.env.DOMAINS || "").split(",").map((d) => d.trim()).filter(Boolean);
+	const domain = domains[0];
+	if (!domain) return c.json({ error: "No mailbox domain is configured" }, 400);
+
+	const allowedAddresses = (c.env.EMAIL_ADDRESSES ?? []) as string[];
+	if (allowedAddresses.length > 0) {
+		return c.json({ error: "Random mailbox creation is disabled for configured EMAIL_ADDRESSES" }, 403);
+	}
+
+	for (let attempt = 0; attempt < 5; attempt++) {
+		const localPart = `inbox-${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+		const email = `${localPart}@${domain}`.toLowerCase();
+		const key = `mailboxes/${email}.json`;
+		if (await c.env.BUCKET.head(key)) continue;
+
+		const settings = {
+			fromName: "Inbox",
+			forwarding: { enabled: false, email: "" },
+			signature: { enabled: false, text: "" },
+			autoReply: { enabled: false, subject: "", message: "" },
+		};
+		await c.env.BUCKET.put(key, JSON.stringify(settings));
+		const stub = c.env.MAILBOX.get(c.env.MAILBOX.idFromName(email));
+		await stub.getFolders();
+		return c.json({ id: email, email, name: "Inbox", settings }, 201);
+	}
+
+	return c.json({ error: "Could not generate a unique mailbox address" }, 503);
+});
+
 app.get("/api/v1/mailboxes/:mailboxId", async (c) => {
 	const mailboxId = c.req.param("mailboxId")!;
 	const obj = await c.env.BUCKET.get(`mailboxes/${mailboxId}.json`);

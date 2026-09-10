@@ -103,6 +103,7 @@ const api = {
 	listMailboxes: () => get<Mailbox[]>("/api/v1/mailboxes"),
 	createMailbox: (email: string, name: string, settings?: unknown) =>
 		post<Mailbox>("/api/v1/mailboxes", { email, name, settings }),
+	createRandomMailbox: () => post<Mailbox>("/api/v1/mailboxes/random"),
 	getMailbox: (mailboxId: string) =>
 		get<Mailbox>(`/api/v1/mailboxes/${mailboxId}`),
 	updateMailbox: (mailboxId: string, settings: unknown) =>
