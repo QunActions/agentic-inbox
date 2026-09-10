@@ -134,7 +134,7 @@ app.post("/api/v1/mailboxes/random", async (c) => {
 	}
 
 	for (let attempt = 0; attempt < 5; attempt++) {
-		const localPart = `inbox-${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}`;
+		const localPart = crypto.randomUUID().replace(/-/g, "").slice(0, 10);
 		const email = `${localPart}@${domain}`.toLowerCase();
 		const key = `mailboxes/${email}.json`;
 		if (await c.env.BUCKET.head(key)) continue;

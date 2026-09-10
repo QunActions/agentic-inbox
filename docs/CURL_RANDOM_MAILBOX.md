@@ -45,8 +45,8 @@ curl -sS -X POST "${INBOX_URL}/api/v1/mailboxes/random" \
 
 ```json
 {
-  "id": "inbox-7f3a91c2d0@cloudmail.qun.run",
-  "email": "inbox-7f3a91c2d0@cloudmail.qun.run",
+  "id": "7f3a91c2d0@cloudmail.qun.run",
+  "email": "7f3a91c2d0@cloudmail.qun.run",
   "name": "Inbox",
   "settings": {}
 }
@@ -75,7 +75,7 @@ curl -sS "${INBOX_URL}/api/v1/mailboxes" \
 邮箱地址包含 `@`，建议使用 `--get --data-urlencode` 让 curl 正确编码路径参数：
 
 ```bash
-MAILBOX='inbox-7f3a91c2d0@cloudmail.qun.run'
+MAILBOX='7f3a91c2d0@cloudmail.qun.run'
 
 curl -sS --get "${INBOX_URL}/api/v1/mailboxes/${MAILBOX}/emails" \
   --data-urlencode 'folder=inbox' \
