@@ -52,6 +52,8 @@ https://github.com/cloudflare/agentic-inbox/issues/4#issuecomment-4269118513
 
 ## Getting Started
 
+For API usage with cURL, see [使用 cURL 创建随机邮箱并获取邮件](./docs/CURL_RANDOM_MAILBOX.md).
+
 ```bash
 npm install
 npm run dev

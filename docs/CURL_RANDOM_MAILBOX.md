@@ -1,0 +1,109 @@
+# 使用 cURL 创建随机邮箱并获取邮件
+
+本文适用于部署地址 `https://cloudmail.qun.run`。
+
+## 前提
+
+应用生产环境启用了 Cloudflare Access。所有 API 请求都必须带有效的 Access JWT：
+
+```bash
+export INBOX_URL='https://cloudmail.qun.run'
+export CF_ACCESS_JWT='从 Cloudflare Access 登录会话取得的 JWT'
+```
+
+请求头写法：
+
+```bash
+-H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}"
+```
+
+如果使用 Cloudflare Access Service Token，也可以按 Access 策略要求改用对应的 `CF-Access-Client-Id` 和 `CF-Access-Client-Secret` 请求头。
+
+## 创建随机邮箱
+
+调用随机邮箱接口：
+
+```bash
+curl -sS -X POST "${INBOX_URL}/api/v1/mailboxes/random" \
+  -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}" \
+  -H 'Accept: application/json'
+```
+
+成功响应示例：
+
+```json
+{
+  "id": "inbox-7f3a91c2d0@cloudmail.qun.run",
+  "email": "inbox-7f3a91c2d0@cloudmail.qun.run",
+  "name": "Inbox",
+  "settings": {}
+}
+```
+
+保存邮箱地址：
+
+```bash
+MAILBOX=$(curl -sS -X POST "${INBOX_URL}/api/v1/mailboxes/random" \
+  -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}" | jq -r '.email')
+echo "${MAILBOX}"
+```
+
+注意：该接口只在 `EMAIL_ADDRESSES` 为空时允许随机创建；如果部署配置了固定白名单，会返回 `403`。
+
+## 获取邮箱列表
+
+```bash
+curl -sS "${INBOX_URL}/api/v1/mailboxes" \
+  -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}" \
+  -H 'Accept: application/json' | jq
+```
+
+## 获取收件箱邮件
+
+邮箱地址包含 `@`，建议使用 `--get --data-urlencode` 让 curl 正确编码路径参数：
+
+```bash
+MAILBOX='inbox-7f3a91c2d0@cloudmail.qun.run'
+
+curl -sS --get "${INBOX_URL}/api/v1/mailboxes/${MAILBOX}/emails" \
+  --data-urlencode 'folder=inbox' \
+  --data-urlencode 'page=1' \
+  --data-urlencode 'limit=50' \
+  -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}" \
+  -H 'Accept: application/json' | jq
+```
+
+响应通常包含 `emails` 和 `totalCount`：
+
+```json
+{
+  "emails": [],
+  "totalCount": 0
+}
+```
+
+## 获取单封邮件
+
+先从上一步响应中取得邮件 `id`，再请求：
+
+```bash
+EMAIL_ID='邮件 id'
+
+curl -sS "${INBOX_URL}/api/v1/mailboxes/${MAILBOX}/emails/${EMAIL_ID}" \
+  -H "CF-Access-JWT-Assertion: ${CF_ACCESS_JWT}" \
+  -H 'Accept: application/json' | jq
+```
+
+## 收信链路
+
+要真正收到外部邮件，还必须在 Cloudflare Email Routing 中将 `cloudmail.qun.run` 的 Catch-all 或具体地址规则指向 `agentic-inbox`。仅创建 API 邮箱不会自动改变 Email Routing。
+
+当前 Worker 对不存在的邮箱地址会忽略来信；因此规则指向 Worker 后，收件地址必须已经在应用中创建。
+
+## 常见错误
+
+- `403 Missing required CF Access JWT`：未带 `CF-Access-JWT-Assertion`，或 Access 尚未登录。
+- `403 Invalid or expired Access token`：JWT 已过期，重新登录并获取新 JWT。
+- `403 Random mailbox creation is disabled...`：部署配置了 `EMAIL_ADDRESSES` 白名单。
+- 邮箱列表为空：检查邮箱地址是否已创建，以及 Email Routing 规则是否指向 `agentic-inbox`。
+
